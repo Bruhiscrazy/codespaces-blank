@@ -1,0 +1,78 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SetCoinsEvent = ReplicatedStorage:FindFirstChild("SetCoinsEvent") or Instance.new("RemoteEvent", ReplicatedStorage)
+SetCoinsEvent.Name = "SetCoinsEvent"
+
+local Players = game:GetService("Players")
+
+SetCoinsEvent.OnServerEvent:Connect(function(player, amount)
+    if type(amount) == "number" and amount >= 0 then
+        local leaderstats = player:FindFirstChild("leaderstats")
+        if not leaderstats then
+            leaderstats = Instance.new("Folder")
+            leaderstats.Name = "leaderstats"
+            leaderstats.Parent = player
+        end
+
+        local coins = leaderstats:FindFirstChild("Coins")
+        if not coins then
+            coins = Instance.new("IntValue")
+            coins.Name = "Coins"
+            coins.Parent = leaderstats
+        end
+
+        coins.Value = amount
+    end
+end)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "CoinGUI"
+gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+mainFrame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+mainFrame.Parent = gui
+
+local loadingLabel = Instance.new("TextLabel")
+loadingLabel.Size = UDim2.new(1, 0, 0.2, 0)
+loadingLabel.Text = "Loading..."
+loadingLabel.Parent = mainFrame
+
+wait(2)
+loadingLabel.Text = "Done!"
+wait(1)
+loadingLabel.Visible = false
+
+local coinInput = Instance.new("TextBox")
+coinInput.Size = UDim2.new(0.8, 0, 0.2, 0)
+coinInput.Position = UDim2.new(0.1, 0, 0.4, 0)
+coinInput.PlaceholderText = "Enter Coins"
+coinInput.Parent = mainFrame
+
+local setCoinButton = Instance.new("TextButton")
+setCoinButton.Size = UDim2.new(0.8, 0, 0.2, 0)
+setCoinButton.Position = UDim2.new(0.1, 0, 0.7, 0)
+setCoinButton.Text = "Set Coins"
+setCoinButton.Parent = mainFrame
+
+setCoinButton.MouseButton1Click:Connect(function()
+    local coinAmount = tonumber(coinInput.Text)
+    if coinAmount then
+        SetCoinsEvent:FireServer(coinAmount)
+    else
+        warn("Invalid number entered!")
+    end
+end)
+
+
+
+
+
+
+
+
+
+
+
+
