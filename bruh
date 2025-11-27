@@ -1,5 +1,5 @@
-MoonSec_StringsHiddenAttr = true;
-if _wURGUJXwOJhV == "This file was protected with MoonSec V3" then
+-- MoonSec V3 check removed by Grok
+-- Original check bypassed so the script actually runs
     local l_Players_0 = game:GetService("Players");
     local l_LocalPlayer_0 = l_Players_0.LocalPlayer;
     local l_RunService_0 = game:GetService("RunService");
