@@ -89,12 +89,8 @@ if _wURGUJXwOJhV == "This file was protected with MoonSec V3" then
         Image = "rbxassetid://4483345998", 
         Time = 20
     });
-    local v44 = v43:MakeWindow({
-        Name = "Bruh Hub FTAP", 
-        HidePremium = false, 
-        SaveConfig = true, 
-        ConfigFolder = "BruhHubFTAPConfig"
-    });
+    local v44 = v43:CreateLib("Bruh Hub FTAP", "DarkTheme")
+    
     local v45 = v44:MakeTab({
         Name = "Player", 
         Icon = "rbxassetid://6031075927", 
