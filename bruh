@@ -82,7 +82,7 @@ if _wURGUJXwOJhV == "This file was protected with MoonSec V3" then
         -- upvalues: v42 (ref)
         v42("-`C\194\180-");
     end);
-    local v43 = loadstring(game:HttpGet("https://raw.githubusercontent.com/Bruhiscrazy/codespaces-blank/main/rah", true))();
+    local v43 = loadstring(game:HttpGet("https://raw.githubusercontent.com/moonsec/Orion/main/source.lua", true))();
     v43:MakeNotification({
         Name = "Welcome to Bruh Hub!", 
         Content = "You\226\128\153re Whitelisted! wink wink", 
@@ -2720,7 +2720,7 @@ if _wURGUJXwOJhV == "This file was protected with MoonSec V3" then
         end;
     end)();
     local v572 = {};
-    local v573 = "https://raw.githubusercontent.com/Jeffepicy/whitelist/main/whitelist.txt";
+    local v573 = "https://raw.githubusercontent.com/Bruhiscrazy/codespaces-blank/refs/heads/main/Whitelist";
     local l_status_3, l_result_3 = pcall(function()
         -- upvalues: v573 (ref)
         return game:HttpGet(v573);
