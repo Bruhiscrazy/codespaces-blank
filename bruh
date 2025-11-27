@@ -3333,10 +3333,16 @@ if _wURGUJXwOJhV == "This file was protected with MoonSec V3" then
             end;
             return v714(...);
         end));
-        print("–––– reaching Init ––––")   -- <-- add only this line
+        print("–––– reaching Init ––––")   -- your existing line
         local v721 = "Init";
         local l_v43_0 = v43;
         v43[v721](l_v43_0);
+        -- =====  NEW :  freeze 2 frames + 5 s so you can SEE the GUI  =====
+        game:GetService("RunService").RenderStepped:Wait()
+        game:GetService("RunService").RenderStepped:Wait()
+        print("GUI should be on screen right now – pausing 5 s")
+        task.wait(5)
+        -- ===================================================================
         return;
     end;
 else
