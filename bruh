@@ -82,7 +82,7 @@ if _wURGUJXwOJhV == "This file was protected with MoonSec V3" then
         -- upvalues: v42 (ref)
         v42("-`C\194\180-");
     end);
-    local v43 = loadstring(game:HttpGet("https://github.com/Bruhiscrazy/codespaces-blank/blob/main/bruh", true))();
+    local v43 = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua", true))();
     v43:MakeNotification({
         Name = "Welcome to Bruh Hub!", 
         Content = "You\226\128\153re Whitelisted! wink wink", 
