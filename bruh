@@ -3333,6 +3333,7 @@ if _wURGUJXwOJhV == "This file was protected with MoonSec V3" then
             end;
             return v714(...);
         end));
+        print("–––– reaching Init ––––")   -- <-- add only this line
         local v721 = "Init";
         local l_v43_0 = v43;
         v43[v721](l_v43_0);
