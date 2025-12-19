@@ -20,7 +20,6 @@ local OrionLib = {
     Text = Color3.fromRGB(255, 255, 255),
     TextDark = Color3.fromRGB(200, 200, 200)
 },
-
         RageByte = {
             Main = Color3.fromRGB(40, 0, 0),
             Second = Color3.fromRGB(50, 0, 0),
@@ -66,7 +65,9 @@ local Modal = Instance.new("TextButton")
 
 local FocusDrag = nil
 
-Orion.Name = "Orion"
+Orion.Name = " "
+task.wait()
+Orion.Name = "BruhProtection"
 
 getgenv().gethui = function() return game.CoreGui end
 
