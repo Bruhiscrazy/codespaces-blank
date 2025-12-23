@@ -1,0 +1,737 @@
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Main Frame 
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+-- Rounded Corners
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 16) -- smooth circular corners
+uiCorner.Parent = mainFrame
+
+-- Draggable Function
+local dragging = false
+local dragInput, mousePos, framePos
+
+local function update(input)
+    local delta = input.Position - mousePos
+    mainFrame.Position = UDim2.new(
+        0, framePos.X.Offset + delta.X,
+        0, framePos.Y.Offset + delta.Y
+    )
+end
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        mousePos = input.Position
+        framePos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Shrink/Maximize Button
+local shrinkBtn = Instance.new("TextButton")
+shrinkBtn.Size = UDim2.new(0, 30, 0, 30)
+shrinkBtn.Position = UDim2.new(1, -35, 0, 5)
+shrinkBtn.Text = "-"
+shrinkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+shrinkBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+shrinkBtn.Parent = mainFrame
+shrinkBtn.AutoButtonColor = true
+local minimized = false
+
+shrinkBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    local newSize = minimized and UDim2.new(0, 150, 0, 40) or UDim2.new(0, 400, 0, 300)
+    TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = newSize}):Play()
+end)
+
+-- Container for tabs
+local tabContainer = Instance.new("Frame")
+tabContainer.Size = UDim2.new(1, -20, 0, 40)
+tabContainer.Position = UDim2.new(0, 10, 0, 50)
+tabContainer.BackgroundTransparency = 1
+tabContainer.Parent = mainFrame
+
+-- Tab UI Corner (optional small rounding)
+local tabCorner = Instance.new("UICorner")
+tabCorner.CornerRadius = UDim.new(0, 12)
+tabCorner.Parent = tabContainer
+
+-- Function to create a Tab Button
+local function createTab(name)
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Size = UDim2.new(0, 120, 1, 0)
+    tabBtn.Position = UDim2.new(0, (#tabContainer:GetChildren()-1)*125, 0, 0)
+    tabBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tabBtn.Text = name
+    tabBtn.AutoButtonColor = true
+    tabBtn.Parent = tabContainer
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = tabBtn
+
+    return tabBtn
+end
+
+-- Example Tabs
+local tab1 = createTab("Main")
+local tab2 = createTab("Settings")
+local tab3 = createTab("Players")
+
+-- Sections container (below tabs)
+local sectionContainer = Instance.new("Frame")
+sectionContainer.Size = UDim2.new(1, -20, 1, -100)
+sectionContainer.Position = UDim2.new(0, 10, 0, 100)
+sectionContainer.BackgroundTransparency = 1
+sectionContainer.Parent = mainFrame
+
+-- Function to create a Section inside a tab
+local function createSection(parent, name)
+    local section = Instance.new("Frame")
+    section.Size = UDim2.new(1, 0, 0, 150)
+    section.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    section.Position = UDim2.new(0, 0, 0, (#parent:GetChildren()-1)*155)
+    section.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = section
+
+    local title = Instance.new("TextLabel")
+    title.Text = name
+    title.Size = UDim2.new(1, -20, 0, 30)
+    title.Position = UDim2.new(0, 10, 0, 10)
+    title.BackgroundTransparency = 1
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+    title.Parent = section
+
+    return section
+end
+
+-- Example Sections
+local mainSection = createSection(sectionContainer, "Main Features")
+local settingsSection = createSection(sectionContainer, "Settings")
+local playersSection = createSection(sectionContainer, "Player Targets")
+-- Player Buttons with Avatars
+
+local PlayersService = game:GetService("Players")
+
+-- Function to create a player button
+local function createPlayerButton(playerObj, parent)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 180, 0, 50)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.Text = ""
+    btn.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*60)
+    btn.AutoButtonColor = true
+    btn.Parent = parent
+
+    -- Rounded corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = btn
+
+    -- Player avatar
+    local avatar = Instance.new("ImageLabel")
+    avatar.Size = UDim2.new(0, 40, 0, 40)
+    avatar.Position = UDim2.new(0, 5, 0, 5)
+    avatar.BackgroundTransparency = 1
+    avatar.Image = PlayersService:GetUserThumbnailAsync(playerObj.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100)
+    avatar.Parent = btn
+
+    -- Player name
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0, 120, 1, 0)
+    nameLabel.Position = UDim2.new(0, 50, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = playerObj.Name
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextScaled = true
+    nameLabel.Font = Enum.Font.Gotham
+    nameLabel.Parent = btn
+
+    -- Example selection callback
+    btn.MouseButton1Click:Connect(function()
+        print("Selected player:", playerObj.Name)
+        -- Here you can set a target variable or perform an action
+    end)
+
+    return btn
+end
+
+-- Clear old buttons
+for _, child in pairs(playersSection:GetChildren()) do
+    if child:IsA("TextButton") then
+        child:Destroy()
+    end
+end
+
+-- Create buttons for each player
+for _, plr in pairs(PlayersService:GetPlayers()) do
+    if plr ~= player then -- exclude local player
+        createPlayerButton(plr, playersSection)
+    end
+end
+
+-- Update buttons when a player joins
+PlayersService.PlayerAdded:Connect(function(plr)
+    createPlayerButton(plr, playersSection)
+end)
+
+-- Remove button when a player leaves
+PlayersService.PlayerRemoving:Connect(function(plr)
+    for _, btn in pairs(playersSection:GetChildren()) do
+        if btn:IsA("TextButton") and btn:FindFirstChild("TextLabel") and btn.TextLabel.Text == plr.Name then
+            btn:Destroy()
+        end
+    end
+end)
+
+-- Function to create a toggle
+local function createToggle(parent, name, callback)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Size = UDim2.new(0, 180, 0, 50)
+    toggleFrame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*60)
+    toggleFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    toggleFrame.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = toggleFrame
+
+    -- Toggle Label
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.Gotham
+    label.Parent = toggleFrame
+
+    -- Toggle Button
+    local toggleBtn = Instance.new("Frame")
+    toggleBtn.Size = UDim2.new(0, 30, 0, 30)
+    toggleBtn.Position = UDim2.new(0.75, 0, 0.5, -15)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    toggleBtn.Parent = toggleFrame
+
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 16)
+    toggleCorner.Parent = toggleBtn
+
+    local toggled = false
+    toggleBtn.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        local targetColor = toggled and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(100, 100, 100)
+        TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
+        if callback then
+            callback(toggled)
+        end
+    end)
+
+    -- Make the toggle clickable as button
+    local clickDetector = Instance.new("TextButton")
+    clickDetector.Size = UDim2.new(1, 0, 1, 0)
+    clickDetector.BackgroundTransparency = 1
+    clickDetector.Text = ""
+    clickDetector.Parent = toggleFrame
+
+    clickDetector.MouseButton1Click:Connect(function()
+        toggleBtn.MouseButton1Click:Fire()
+    end)
+
+    return toggleFrame
+end
+
+-- Function to create a simple feature button
+local function createFeatureButton(parent, name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 180, 0, 50)
+    btn.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*60)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.Gotham
+    btn.AutoButtonColor = true
+    btn.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        if callback then
+            callback()
+        end
+    end)
+
+    return btn
+end
+
+-- Example usage in Main Section
+createToggle(mainSection, "Auto Farm", function(state)
+    print("Auto Farm Toggled:", state)
+end)
+
+createToggle(mainSection, "ESP Enabled", function(state)
+    print("ESP Toggled:", state)
+end)
+
+createFeatureButton(mainSection, "Clear Debris", function()
+    print("Feature Button Clicked!")
+end)
+-- Sliders are just here bro
+
+-- Function to create a slider
+local function createSlider(parent, name, min, max, default, callback)
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(0, 180, 0, 50)
+    sliderFrame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*60)
+    sliderFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    sliderFrame.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = sliderFrame
+
+    -- Slider Label
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 0, 20)
+    label.Position = UDim2.new(0, 10, 0, 5)
+    label.Text = name .. ": " .. tostring(default)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.Gotham
+    label.Parent = sliderFrame
+
+    -- Slider Bar
+    local sliderBar = Instance.new("Frame")
+    sliderBar.Size = UDim2.new(1, -20, 0, 10)
+    sliderBar.Position = UDim2.new(0, 10, 0, 30)
+    sliderBar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    sliderBar.Parent = sliderFrame
+
+    local barCorner = Instance.new("UICorner")
+    barCorner.CornerRadius = UDim.new(0, 16)
+    barCorner.Parent = sliderBar
+
+    -- Slider Handle
+    local handle = Instance.new("Frame")
+    handle.Size = UDim2.new((default-min)/(max-min), 0, 1, 0)
+    handle.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    handle.Parent = sliderBar
+
+    local handleCorner = Instance.new("UICorner")
+    handleCorner.CornerRadius = UDim.new(0, 16)
+    handleCorner.Parent = handle
+
+    -- Dragging logic
+    local dragging = false
+    local mouseX = 0
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+        end
+    end)
+
+    handle.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            local posX = math.clamp(input.Position.X - sliderBar.AbsolutePosition.X, 0, sliderBar.AbsoluteSize.X)
+            local value = min + (posX/sliderBar.AbsoluteSize.X)*(max-min)
+            handle.Size = UDim2.new(posX/sliderBar.AbsoluteSize.X, 0, 1, 0)
+            label.Text = name .. ": " .. string.format("%.1f", value)
+            if callback then
+                callback(value)
+            end
+        end
+    end)
+
+    return sliderFrame
+end
+
+-- Example usage in Settings Section
+createSlider(settingsSection, "WalkSpeed", 16, 500, 16, function(value)
+    player.Character.Humanoid.WalkSpeed = value
+end)
+
+createSlider(settingsSection, "JumpPower", 50, 300, 50, function(value)
+    player.Character.Humanoid.JumpPower = value
+end)
+-- Notifications yes papi
+
+-- Function to show a notification
+local function ShowNotification(title, text, duration, color)
+    local notif = Instance.new("Frame")
+    notif.Size = UDim2.new(0, 300, 0, 60)
+    notif.Position = UDim2.new(0.5, -150, -1, 0) -- start off-screen
+    notif.BackgroundColor3 = color or Color3.fromRGB(30, 30, 30)
+    notif.Parent = screenGui
+    notif.ZIndex = 999
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = notif
+
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -20, 0, 25)
+    titleLabel.Position = UDim2.new(0, 10, 0, 5)
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextScaled = true
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Parent = notif
+
+    -- Text
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, -20, 0, 25)
+    textLabel.Position = UDim2.new(0, 10, 0, 30)
+    textLabel.Text = text
+    textLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.Gotham
+    textLabel.BackgroundTransparency = 1
+    textLabel.Parent = notif
+
+    -- Tween in
+    TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Position = UDim2.new(0.5, -150, 0, 20)}):Play()
+
+    -- Auto-remove
+    task.delay(duration or 3, function()
+        TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Position = UDim2.new(0.5, -150, -1, 0)}):Play()
+        task.delay(0.3, function()
+            notif:Destroy()
+        end)
+    end)
+end
+
+-- Example usage
+createFeatureButton(mainSection, "Notify Example", function()
+    ShowNotification("Alert!", "This is a test notification", 4, Color3.fromRGB(0, 170, 255))
+end)
+-- Keybinds yessir
+
+-- Function to create a keybind button
+local function createKeybind(parent, name, defaultKey, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 180, 0, 50)
+    frame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*60)
+    frame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    frame.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = frame
+
+    -- Label
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.Gotham
+    label.Parent = frame
+
+    -- Circular Key Button
+    local keyBtn = Instance.new("TextButton")
+    keyBtn.Size = UDim2.new(0, 40, 0, 40)
+    keyBtn.Position = UDim2.new(0.75, 0, 0.5, -20)
+    keyBtn.Text = defaultKey.Name or defaultKey
+    keyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    keyBtn.Font = Enum.Font.GothamBold
+    keyBtn.TextScaled = true
+    keyBtn.Parent = frame
+    keyBtn.AutoButtonColor = true
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 20) -- circular
+    btnCorner.Parent = keyBtn
+
+    local waitingForKey = false
+    keyBtn.MouseButton1Click:Connect(function()
+        waitingForKey = true
+        keyBtn.Text = "..."
+    end)
+
+    -- Capture key press
+    UserInputService.InputBegan:Connect(function(input, processed)
+        if not processed and waitingForKey and input.UserInputType == Enum.UserInputType.Keyboard then
+            keyBtn.Text = input.KeyCode.Name
+            waitingForKey = false
+            if callback then
+                callback(input.KeyCode)
+            end
+        end
+    end)
+
+    return frame
+end
+
+-- Example usage in Settings Section
+createKeybind(settingsSection, "Toggle UI", Enum.KeyCode.RightControl, function(key)
+    print("UI toggle key set to:", key.Name)
+end)
+-- Color Picker / Theme System
+
+-- Function to create a color picker
+local function createColorPicker(parent, name, defaultColor, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 180, 0, 50)
+    frame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*60)
+    frame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    frame.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = frame
+
+    -- Label
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.Gotham
+    label.Parent = frame
+
+    -- Color Button
+    local colorBtn = Instance.new("TextButton")
+    colorBtn.Size = UDim2.new(0, 40, 0, 40)
+    colorBtn.Position = UDim2.new(0.75, 0, 0.5, -20)
+    colorBtn.BackgroundColor3 = defaultColor
+    colorBtn.Text = ""
+    colorBtn.Parent = frame
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 20)
+    btnCorner.Parent = colorBtn
+
+    local picking = false
+
+    colorBtn.MouseButton1Click:Connect(function()
+        picking = not picking
+    end)
+
+    -- Example simple color cycle (press to change)
+    colorBtn.MouseButton1Click:Connect(function()
+        local randomColor = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
+        colorBtn.BackgroundColor3 = randomColor
+        if callback then
+            callback(randomColor)
+        end
+    end)
+
+    return frame
+end
+
+-- Example usage: Theme Section
+createColorPicker(settingsSection, "UI Accent", Color3.fromRGB(0,170,255), function(color)
+    -- Change mainFrame and button accent colors
+    mainFrame.BackgroundColor3 = color
+    for _, btn in pairs(mainSection:GetChildren()) do
+        if btn:IsA("TextButton") or btn:IsA("Frame") then
+            local corner = btn:FindFirstChildOfClass("UICorner")
+            if corner then
+                btn.BackgroundColor3 = color
+            end
+        end
+    end
+end)
+-- UI Resizing / Scaling yes bro just change it if it’s too big or small
+
+-- Function to resize a frame smoothly
+local function resizeFrame(frame, newSize, duration)
+    TweenService:Create(frame, TweenInfo.new(duration or 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = newSize}):Play()
+end
+
+-- Add a resize handle to mainFrame
+local resizeHandle = Instance.new("Frame")
+resizeHandle.Size = UDim2.new(0, 20, 0, 20)
+resizeHandle.Position = UDim2.new(1, -20, 1, -20)
+resizeHandle.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+resizeHandle.Parent = mainFrame
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = resizeHandle
+
+-- Draggable resizing
+local resizing = false
+local startSize, startPos, mouseStart
+
+resizeHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        resizing = true
+        startSize = mainFrame.Size
+        mouseStart = input.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                resizing = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - mouseStart
+        local newWidth = math.clamp(startSize.X.Offset + delta.X, 200, 800)
+        local newHeight = math.clamp(startSize.Y.Offset + delta.Y, 100, 600)
+        mainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+    end
+end)
+
+-- Example: Shrink/Maximize section container
+local sectionToggleBtn = Instance.new("TextButton")
+sectionToggleBtn.Size = UDim2.new(0, 30, 0, 30)
+sectionToggleBtn.Position = UDim2.new(1, -35, 0, 80)
+sectionToggleBtn.Text = "+"
+sectionToggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+sectionToggleBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+sectionToggleBtn.Parent = mainFrame
+
+local sectionsMinimized = false
+sectionToggleBtn.MouseButton1Click:Connect(function()
+    sectionsMinimized = not sectionsMinimized
+    local newSize = sectionsMinimized and UDim2.new(1, -20, 0, 0) or UDim2.new(1, -20, 1, -100)
+    resizeFrame(sectionContainer, newSize, 0.3)
+end)
+-- Final Polish & Extras lets gooo final yall lucky it shows where all parts of the ui at
+
+-- 1. Drop Shadow for mainFrame
+local shadow = Instance.new("ImageLabel")
+shadow.Size = UDim2.new(1, 20, 1, 20)
+shadow.Position = UDim2.new(0, -10, 0, -10)
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxassetid://1316045217" -- example shadow image
+shadow.ImageColor3 = Color3.fromRGB(0,0,0)
+shadow.ImageTransparency = 0.5
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(10,10,118,118)
+shadow.Parent = mainFrame
+shadow.ZIndex = 0
+
+-- Ensure shadow is behind
+shadow.Parent = mainFrame
+shadow.ZIndex = mainFrame.ZIndex - 1
+
+-- 2. Hover Effects for Buttons
+local function addHoverEffect(button, hoverColor)
+    local originalColor = button.BackgroundColor3
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor or Color3.fromRGB(0,120,255)}):Play()
+    end)
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = originalColor}):Play()
+    end)
+end
+
+-- Apply hover effect to all buttons in mainSection
+for _, btn in pairs(mainSection:GetChildren()) do
+    if btn:IsA("TextButton") or btn:IsA("Frame") then
+        addHoverEffect(btn, Color3.fromRGB(0,170,255))
+    end
+end
+
+-- 3. Corner Refinements (extra rounding for all frames)
+local function refineCorners(frame, radius)
+    local corner = frame:FindFirstChildOfClass("UICorner")
+    if corner then
+        corner.CornerRadius = UDim.new(0, radius or 16)
+    else
+        local newCorner = Instance.new("UICorner")
+        newCorner.CornerRadius = UDim.new(0, radius or 16)
+        newCorner.Parent = frame
+    end
+end
+
+-- Refine all main frames & sections
+refineCorners(mainFrame, 20)
+refineCorners(tabContainer, 16)
+for _, sec in pairs(sectionContainer:GetChildren()) do
+    if sec:IsA("Frame") then
+        refineCorners(sec, 16)
+    end
+end
+
+-- 4. Subtle tween animations for UI appearance
+TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = mainFrame.Position}):Play()
+
+-- 5. Optional: Hover scale effect for circular keybinds and color buttons
+local function addScaleHover(button)
+    local originalSize = button.Size
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15), {Size = originalSize + UDim2.new(0,5,0,5)}):Play()
+    end)
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15), {Size = originalSize}):Play()
+    end)
+end
+
+-- Apply to keybinds and color buttons
+for _, section in pairs(sectionContainer:GetChildren()) do
+    for _, item in pairs(section:GetChildren()) do
+        if item:IsA("Frame") then
+            for _, child in pairs(item:GetChildren()) do
+                if child:IsA("TextButton") then
+                    addScaleHover(child)
+                end
+            end
+        end
+    end
+end
