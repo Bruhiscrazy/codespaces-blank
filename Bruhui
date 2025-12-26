@@ -1,911 +1,244 @@
---// BruhUI - Orion Style UI
---// Part 1 / 9 : Core + Utilities
+-- github.com/lxte/Modal
 
-local BruhUI = {}
-BruhUI.__index = BruhUI
+-- Services
+local UserInputService = game:GetService("UserInputService");
 
---// SERVICES
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local TextService = game:GetService("TextService")
-
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
---// MAIN TABLES
-BruhUI.Windows = {}
-BruhUI.Flags = {}
-BruhUI.Connections = {}
-
---// THEME (Orion-like)
-BruhUI.Theme = {
-    Background = Color3.fromRGB(20, 20, 20),
-    Secondary = Color3.fromRGB(30, 30, 30),
-    Accent = Color3.fromRGB(0, 170, 255),
-    Text = Color3.fromRGB(255, 255, 255),
-    Muted = Color3.fromRGB(150, 150, 150),
-    Border = Color3.fromRGB(60, 60, 60)
-}
-
---// UTILITIES
-local Util = {}
-
-function Util:Create(class, props)
-    local obj = Instance.new(class)
-    for k, v in pairs(props or {}) do
-        if k ~= "Parent" then
-            obj[k] = v
-        end
-    end
-    obj.Parent = props.Parent
-    return obj
-end
-
-function Util:Corner(radius, parent)
-    return Util:Create("UICorner", {
-        CornerRadius = UDim.new(0, radius),
-        Parent = parent
-    })
-end
-
-function Util:Stroke(color, thickness, parent)
-    return Util:Create("UIStroke", {
-        Color = color,
-        Thickness = thickness or 1,
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-        Parent = parent
-    })
-end
-
-function Util:Tween(obj, info, goal)
-    local tween = TweenService:Create(obj, info, goal)
-    tween:Play()
-    return tween
-end
-
-function Util:Drag(frame, handle)
-    handle = handle or frame
-    local dragging, dragStart, startPos
-
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-end
-
---// SIGNAL (custom event system)
-local Signal = {}
-Signal.__index = Signal
-
-function Signal.new()
-    return setmetatable({Connections = {}}, Signal)
-end
-
-function Signal:Connect(fn)
-    table.insert(self.Connections, fn)
-    return fn
-end
-
-function Signal:Fire(...)
-    for _, fn in ipairs(self.Connections) do
-        task.spawn(fn, ...)
-    end
-end
-
-BruhUI.Signal = Signal
-BruhUI.Util = Util
-
---// INTERNAL GUI HOLDER (created once)
-local ScreenGui = Util:Create("ScreenGui", {
-    Name = "BruhUI",
-    ResetOnSpawn = false,
-    ZIndexBehavior = Enum.ZIndexBehavior.Global,
-    Parent = PlayerGui
+-- UI
+local Modal = loadstring(game:HttpGet("https://github.com/lxte/Modal/releases/latest/download/main.lua"))()
+local Window = Modal:CreateWindow({
+    Title = "Modal",
+    SubTitle = "github.com/lxte/Modal",
+    Size = UDim2.fromOffset(400, 400),
+    MinimumSize = Vector2.new(250, 200),
+    Transparency = 0,
+    Icon = "rbxassetid://68073547",
 })
 
-BruhUI._ScreenGui = ScreenGui
+local ScriptSettings = ({
+    NotificationKey = Enum.KeyCode.LeftControl
+})
 
---// PLACEHOLDER (actual window comes later)
-function BruhUI:MakeWindow(config)
-    error("MakeWindow not initialized yet (Part 3 missing)")
-end
+-- Components
+local Components = Window:AddTab("Components")
 
-return BruhUI
---// BruhUI - Part 2 / 9 : Window Shell
-local BruhUI = require(script.Parent:WaitForChild("BruhUI")) -- make sure Part 1 is loaded
-local Util = BruhUI.Util
-local Signal = BruhUI.Signal
+Components:New("Title")({
+    Title = "Components",
+})
 
---// Window Template
-function BruhUI:MakeWindow(config)
-    config = config or {}
-    local Name = config.Name or "BruhUI Window"
-    local SaveConfig = config.SaveConfig or false
-    local IntroEnabled = config.IntroEnabled or false
-    local KeyToOpenWindow = config.KeyToOpenWindow or Enum.KeyCode.RightShift
+Components:New("Button")({
+    Title = "Button",
+    Description = "Click this for a notification",
+    Callback = function()
+        Window:Notify({
+            Title = "Notification",
+            Description = "This is a notification",
+            Duration = 5,
+            Type = "Info",
+        })
+    end,
+})
 
-    local Window = {}
-    Window.Tabs = {}
-    Window.Sections = {}
-    Window.Open = true
-    Window.Signals = {
-        Toggled = Signal.new()
-    }
+Components:New("Input")({
+    Title = "Input",
+    Description = "Type and it will change the Window Title",
+    DefaultText = "Modal Library",
+    Placeholder = "Title Name",
+    Callback = function(Value)
+        Window:SetTitle(Value);
+        -- Window:SetSubTitle("Anything") -- for setting subtitle
+        -- Window:SetIcon("rbxassetid://0") -- for setting icon
+    end,
+})
 
-    --// MAIN FRAME
-    local MainFrame = Util:Create("Frame", {
-        Name = Name,
-        Parent = self._ScreenGui,
-        BackgroundColor3 = self.Theme.Background,
-        Size = UDim2.new(0, 500, 0, 400),
-        Position = UDim2.new(0.5, -250, 0.5, -200),
-        AnchorPoint = Vector2.new(0.5, 0.5)
-    })
-    Util:Corner(6, MainFrame)
-    Util:Stroke(self.Theme.Border, 2, MainFrame)
+Components:New("Keybind")({
+    Title = "Keybind",
+    Description = "Change keybind to send notifications",
+    DefaultKeybind = "LeftControl",
+    Callback = function(Key)
+        ScriptSettings.NotificationKey = Key -- Check bottom of the script to see how to use this
+        print("Got key:", Key) -- Key returns UserInputType if it's a mouse and KeyCode if it's anything else
+    end,
+})
 
-    --// DRAG
-    Util:Drag(MainFrame)
+Components:New("Slider")({
+    Title = "Slider",
+    Description = "Change the transparency of the UI",
+    Default = 0,
+    Minimum = 0,
+    Maximum = 0.8,
+    DecimalCount = 2, -- 0.22 for example (2 decimals)
+    Callback = function(Amount)
+        Window:SetTransparency(Amount);
+    end,
+})
 
-    --// TOPBAR
-    local TopBar = Util:Create("Frame", {
-        Name = "TopBar",
-        Parent = MainFrame,
-        BackgroundColor3 = self.Theme.Secondary,
-        Size = UDim2.new(1, 0, 0, 30),
-    })
-    Util:Corner(6, TopBar)
-    Util:Stroke(self.Theme.Border, 1, TopBar)
+local Toggle
+Toggle = Components:New("Toggle")({
+    Title = "Toggle",
+    Description = "Used to toggle features",
+    DefaultValue = true,
+    Callback = function(Value)
+        print("Got:", Value);
 
-    local Title = Util:Create("TextLabel", {
-        Name = "Title",
-        Parent = TopBar,
-        Text = Name,
-        TextColor3 = self.Theme.Text,
-        TextSize = 18,
-        Font = Enum.Font.GothamBold,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, -40, 1, 0),
-        Position = UDim2.new(0, 10, 0, 0),
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
+        Toggle:SetTitle("Value Changed"); -- Changes the title of the component
+        Toggle:SetDescription("New value is " .. tostring(Value)); -- Changes description
+    end,
+})
 
-    --// TOGGLE BUTTON
-    local ToggleButton = Util:Create("TextButton", {
-        Name = "ToggleButton",
-        Parent = TopBar,
-        Text = "-",
-        TextColor3 = self.Theme.Text,
-        TextSize = 18,
-        Font = Enum.Font.GothamBold,
-        BackgroundColor3 = self.Theme.Secondary,
-        Size = UDim2.new(0, 30, 1, 0),
-        Position = UDim2.new(1, -35, 0, 0)
-    })
-    Util:Corner(4, ToggleButton)
-    ToggleButton.MouseButton1Click:Connect(function()
-        Window.Open = not Window.Open
-        MainFrame.Visible = Window.Open
-        Window.Signals.Toggled:Fire(Window.Open)
-        ToggleButton.Text = Window.Open and "-" or "+"
-    end)
+Components:New("Title")({
+    Title = "Popups",
+})
 
-    --// KEYBIND TO OPEN/CLOSE
-    UserInputService.InputBegan:Connect(function(input, gp)
-        if not gp and input.KeyCode == KeyToOpenWindow then
-            Window.Open = not Window.Open
-            MainFrame.Visible = Window.Open
-            Window.Signals.Toggled:Fire(Window.Open)
-            ToggleButton.Text = Window.Open and "-" or "+"
-        end
-    end)
+Components:New("Dropdown")({
+    Title = "Regular Dropdown",
+    Description = "Only can select 1 option",
+    Options = { "Option 1", "Option 2" },
+    Default = "Option 1",
+    Callback = function(Value)
+        print("Dropdown got:", Value);
+    end,
+})
 
-    --// BODY / CONTENT HOLDER
-    local Body = Util:Create("Frame", {
-        Name = "Body",
-        Parent = MainFrame,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, -30),
-        Position = UDim2.new(0, 0, 0, 30)
-    })
+Components:New("MultiDropdown")({
+    Title = "Regular Dropdown",
+    Description = "Multiple selectable options",
+    Options = { "Option 1", "Option 2", "Option 3" },
+    Default = { "Option 2", "Option 3" },
+    Callback = function(Values)
+        print("MultiDropdown got:", Values); 
+        print("Concat:", table.concat(Values, ", "))
+    end,
+})
 
-    Window._Frame = MainFrame
-    Window._Body = Body
+Components:New("ColorPicker")({
+    Title = "Color Picker",
+    Description = "Returns a Color3 value",
+    Default = Color3.fromRGB(255, 114, 43),
+    Callback = function(Color)
+        print("ColorPicker got:", Color);
+    end,
+})
 
-    table.insert(self.Windows, Window)
-    return Window
-end
---// BruhUI - Part 3 / 9 : Tabs System
-local BruhUI = require(script.Parent:WaitForChild("BruhUI"))
-local Util = BruhUI.Util
-local Signal = BruhUI.Signal
+-- Settings
+local Settings = Window:AddTab("Settings")
 
-function BruhUI:AddTab(Window, TabName)
-    if not Window or not Window._Body then
-        error("AddTab: invalid Window")
+Settings:New("Title")({
+    Title = "Themes"
+})
+
+Settings:New("Dropdown")({
+    Title = "Theme",
+    Description = "Default theme options",
+    Options = { "Light", "Dark", "Midnight", "Rose", "Emerald" },
+    Callback = function(Theme)
+        Window:SetTheme(Theme)
+    end,
+})
+
+Settings:New("Button")({
+    Title = "Set Custom GUI",
+    Description = "This is to showcase how custom themes work (without the default ones)",
+    Callback = function()
+        -- Any section that has rotation as an option (like background) supports gradients (colorsequences)
+        -- Any that don't have the rotation option - only support Color3 values
+        
+        local CustomTheme = {
+            Mode = "Dark",
+            Accent = Color3.fromRGB(255, 170, 70),
+            Background = {
+                Rotation = 120,
+                Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 18, 14)),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 8, 6))
+                }),
+                Line = {
+                    Color = Color3.fromRGB(255, 200, 120),
+                    Transparency = 0.9
+                },
+                OuterOutline = {
+                    Transparency = 0,
+                    Color = Color3.fromRGB(5, 4, 3),
+                    Rotation = 0,
+                },
+                InnerOutline = {
+                    Transparency = 0.78,
+                    Color = Color3.fromRGB(170, 130, 90),
+                    Rotation = 0,
+                }
+            },
+
+            Text = {
+                Title = {
+                    Color = Color3.fromRGB(255, 245, 230),
+                },
+                Description = {
+                    Color = Color3.fromRGB(205, 190, 170),
+                }
+            },
+
+            Icons = {
+                ActionButtons = {
+                    Color = Color3.fromRGB(255, 215, 160),
+                    Transparency = 0.18,
+                }
+            },
+
+            Content = {
+                Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 20, 16)),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 13, 10))
+                }),
+                
+                Rotation = 240,
+                ScrollBarColor = Color3.fromRGB(200, 160, 110),
+
+                InnerOutline = {
+                    Transparency = 0.92,
+                    Color = Color3.fromRGB(160, 125, 85),
+                    Rotation = 0,
+                },
+
+                OuterOutline = {
+                    Transparency = 0,
+                    Color = Color3.fromRGB(6, 5, 4),
+                    Rotation = 0,
+                },
+            },
+
+            Component = {
+                Color = Color3.fromRGB(26, 22, 18),
+                Rotation = 0,
+            },
+
+            Controls = {
+                Color = Color3.fromRGB(36, 30, 24),
+                Outline = Color3.fromRGB(48, 40, 32)
+            },
+        }
+
+            
+        Window:SetTheme(CustomTheme);
+    end,
+})
+
+Settings:New("Button")({
+    Title = "Destroy GUI",
+    Description = "Click to get rid of the UI (can't be brought back)",
+    Callback = function()
+        Window:Destroy();
+    end,
+})
+
+Window:SetTab("Components")
+Window:SetTheme("Rose")
+
+UserInputService.InputBegan:Connect(function(Input)
+    if (Modal:IsCorrectInput(Input, ScriptSettings.NotificationKey)) then
+        Window:Notify({
+            Title = "Modal",
+            Description = "Keybind triggered",
+            Duration = 5,
+            Type = "Success"
+        })
     end
-
-    local Tab = {}
-    Tab.Sections = {}
-    Tab.Name = TabName
-    Tab.Buttons = {}
-
-    --// TAB BUTTON HOLDER (top of window)
-    Window._TabHolder = Window._TabHolder or Util:Create("Frame", {
-        Name = "TabHolder",
-        Parent = Window._Frame,
-        BackgroundColor3 = BruhUI.Theme.Secondary,
-        Size = UDim2.new(1, 0, 0, 25),
-        Position = UDim2.new(0, 0, 0, 30)
-    })
-    Util:Stroke(BruhUI.Theme.Border, 1, Window._TabHolder)
-
-    --// Body position adjusted for tabs
-    Window._Body.Position = UDim2.new(0, 0, 0, 55)
-    Window._Body.Size = UDim2.new(1, 0, 1, -55)
-
-    --// TAB BUTTON
-    local TabButton = Util:Create("TextButton", {
-        Name = TabName.."Button",
-        Parent = Window._TabHolder,
-        Text = TabName,
-        TextColor3 = BruhUI.Theme.Text,
-        TextSize = 16,
-        Font = Enum.Font.GothamBold,
-        BackgroundColor3 = BruhUI.Theme.Secondary,
-        Size = UDim2.new(0, 100, 1, 0)
-    })
-    Util:Corner(4, TabButton)
-
-    --// TAB CONTENT FRAME
-    local TabFrame = Util:Create("Frame", {
-        Name = TabName.."Frame",
-        Parent = Window._Body,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Visible = false
-    })
-    Tab._Frame = TabFrame
-    Tab._Button = TabButton
-
-    --// TAB BUTTON CLICK
-    TabButton.MouseButton1Click:Connect(function()
-        for _, t in pairs(Window.Tabs) do
-            if t._Frame then t._Frame.Visible = false end
-        end
-        TabFrame.Visible = true
-    end)
-
-    --// DEFAULT: first tab visible
-    if #Window.Tabs == 0 then
-        TabFrame.Visible = true
-    end
-
-    table.insert(Window.Tabs, Tab)
-    return Tab
-end
-
---// Section placeholder (actual section system comes next, Part 4)
-function BruhUI:AddSection(Tab, SectionName)
-    error("AddSection not initialized yet (Part 4 missing)")
-end
---// BruhUI - Part 4 / 9 : Sections System
-local BruhUI = require(script.Parent:WaitForChild("BruhUI"))
-local Util = BruhUI.Util
-
-function BruhUI:AddSection(Tab, SectionName)
-    if not Tab or not Tab._Frame then
-        error("AddSection: invalid Tab")
-    end
-
-    local Section = {}
-    Section.Items = {}
-    Section.Name = SectionName
-
-    --// SECTION FRAME
-    local SectionFrame = Util:Create("Frame", {
-        Name = SectionName.."Section",
-        Parent = Tab._Frame,
-        BackgroundColor3 = BruhUI.Theme.Secondary,
-        Size = UDim2.new(1, -20, 0, 100),
-        Position = UDim2.new(0, 10, 0, (#Tab.Sections * 110) + 10)
-    })
-    Util:Corner(6, SectionFrame)
-    Util:Stroke(BruhUI.Theme.Border, 1, SectionFrame)
-
-    --// SECTION TITLE
-    local TitleLabel = Util:Create("TextLabel", {
-        Name = "Title",
-        Parent = SectionFrame,
-        Text = SectionName,
-        TextColor3 = BruhUI.Theme.Text,
-        TextSize = 16,
-        Font = Enum.Font.GothamBold,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 10, 0, 5),
-        Size = UDim2.new(1, -20, 0, 20),
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
-
-    Section._Frame = SectionFrame
-    Section._Title = TitleLabel
-
-    table.insert(Tab.Sections, Section)
-    return Section
-end
-
---// Placeholder functions for items (buttons, toggles, sliders, dropdowns)
-function BruhUI:AddButton(Section, ButtonName, Callback)
-    error("AddButton not initialized yet (Part 5 missing)")
-end
-
-function BruhUI:AddToggle(Section, ToggleName, Default, Callback)
-    error("AddToggle not initialized yet (Part 6 missing)")
-end
-
-function BruhUI:AddSlider(Section, SliderName, Min, Max, Default, Callback)
-    error("AddSlider not initialized yet (Part 7 missing)")
-end
-
-function BruhUI:AddDropdown(Section, DropdownName, Options, Default, Callback)
-    error("AddDropdown not initialized yet (Part 7 missing)")
-end
-
-function BruhUI:AddColorpicker(Section, Name, Default, Callback)
-    error("AddColorpicker not initialized yet (Part 7 missing)")
-end
---// BruhUI - Part 5 / 9 : Buttons
-local BruhUI = require(script.Parent:WaitForChild("BruhUI"))
-local Util = BruhUI.Util
-
-function BruhUI:AddButton(Section, ButtonConfig)
-	-- ButtonConfig = {Name = "ButtonName", Callback = function() end}
-	if not Section or not Section._Frame then
-		error("AddButton: invalid Section")
-	end
-
-	local Name = ButtonConfig.Name or "Button"
-	local Callback = ButtonConfig.Callback or function() end
-
-	--// BUTTON FRAME
-	local ButtonFrame = Util:Create("TextButton", {
-		Name = Name,
-		Parent = Section._Frame,
-		Text = Name,
-		TextColor3 = BruhUI.Theme.Text,
-		TextSize = 15,
-		Font = Enum.Font.GothamBold,
-		BackgroundColor3 = BruhUI.Theme.Accent,
-		Size = UDim2.new(1, -20, 0, 30),
-		Position = UDim2.new(0, 10, 0, 30 + (#Section.Items * 40))
-	})
-	Util:Corner(4, ButtonFrame)
-
-	--// BUTTON HOVER EFFECT
-	ButtonFrame.MouseEnter:Connect(function()
-		ButtonFrame.BackgroundColor3 = BruhUI.Theme.Accent:Lerp(Color3.new(1,1,1), 0.2)
-	end)
-	ButtonFrame.MouseLeave:Connect(function()
-		ButtonFrame.BackgroundColor3 = BruhUI.Theme.Accent
-	end)
-
-	--// BUTTON CLICK
-	ButtonFrame.MouseButton1Click:Connect(function()
-		task.spawn(Callback)
-	end)
-
-	table.insert(Section.Items, ButtonFrame)
-	return ButtonFrame
-end
---// BruhUI - Part 6 / 9 : Toggles
-local BruhUI = require(script.Parent:WaitForChild("BruhUI"))
-local Util = BruhUI.Util
-
-function BruhUI:AddToggle(Section, ToggleConfig)
-	-- ToggleConfig = {Name = "ToggleName", Default = false, Callback = function(value) end}
-	if not Section or not Section._Frame then
-		error("AddToggle: invalid Section")
-	end
-
-	local Name = ToggleConfig.Name or "Toggle"
-	local Default = ToggleConfig.Default or false
-	local Callback = ToggleConfig.Callback or function() end
-
-	local Index = #Section.Items
-
-	--// TOGGLE FRAME
-	local ToggleFrame = Util:Create("Frame", {
-		Name = Name,
-		Parent = Section._Frame,
-		BackgroundColor3 = BruhUI.Theme.Secondary,
-		Size = UDim2.new(1, -20, 0, 30),
-		Position = UDim2.new(0, 10, 0, 30 + (Index * 40))
-	})
-	Util:Corner(4, ToggleFrame)
-	Util:Stroke(BruhUI.Theme.Border, 1, ToggleFrame)
-
-	--// TOGGLE LABEL
-	local Label = Util:Create("TextLabel", {
-		Name = "Label",
-		Parent = ToggleFrame,
-		Text = Name,
-		TextColor3 = BruhUI.Theme.Text,
-		TextSize = 15,
-		Font = Enum.Font.GothamBold,
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 10, 0, 0),
-		Size = UDim2.new(0.7, 0, 1, 0),
-		TextXAlignment = Enum.TextXAlignment.Left
-	})
-
-	--// TOGGLE BUTTON
-	local ToggleButton = Util:Create("Frame", {
-		Name = "ToggleButton",
-		Parent = ToggleFrame,
-		BackgroundColor3 = Default and BruhUI.Theme.Accent or BruhUI.Theme.Muted,
-		Size = UDim2.new(0, 20, 0, 20),
-		Position = UDim2.new(1, -30, 0.5, -10)
-	})
-	Util:Corner(4, ToggleButton)
-
-	local State = Default
-
-	local function UpdateVisual()
-		ToggleButton.BackgroundColor3 = State and BruhUI.Theme.Accent or BruhUI.Theme.Muted
-	end
-
-	UpdateVisual()
-
-	--// TOGGLE CLICK
-	ToggleFrame.MouseButton1Click:Connect(function()
-		State = not State
-		UpdateVisual()
-		task.spawn(Callback, State)
-	end)
-
-	table.insert(Section.Items, ToggleFrame)
-	return ToggleFrame
-end
---// BruhUI - Part 7 / 9 : Sliders, Dropdowns, ColorPickers
-local BruhUI = require(script.Parent:WaitForChild("BruhUI"))
-local Util = BruhUI.Util
-local UserInputService = game:GetService("UserInputService")
-
---// SLIDER
-function BruhUI:AddSlider(Section, SliderConfig)
-	-- SliderConfig = {Name, Min, Max, Default, Callback}
-	if not Section or not Section._Frame then error("AddSlider: invalid Section") end
-
-	local Name = SliderConfig.Name or "Slider"
-	local Min = SliderConfig.Min or 0
-	local Max = SliderConfig.Max or 100
-	local Default = SliderConfig.Default or Min
-	local Callback = SliderConfig.Callback or function() end
-
-	local Index = #Section.Items
-
-	local SliderFrame = Util:Create("Frame", {
-		Name = Name,
-		Parent = Section._Frame,
-		BackgroundColor3 = BruhUI.Theme.Secondary,
-		Size = UDim2.new(1, -20, 0, 40),
-		Position = UDim2.new(0, 10, 0, 30 + (Index * 45))
-	})
-	Util:Corner(4, SliderFrame)
-	Util:Stroke(BruhUI.Theme.Border, 1, SliderFrame)
-
-	local Label = Util:Create("TextLabel", {
-		Name = "Label",
-		Parent = SliderFrame,
-		Text = Name.." : "..Default,
-		TextColor3 = BruhUI.Theme.Text,
-		TextSize = 15,
-		Font = Enum.Font.GothamBold,
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 10, 0, 0),
-		Size = UDim2.new(1, -20, 0.5, 0),
-		TextXAlignment = Enum.TextXAlignment.Left
-	})
-
-	local Bar = Util:Create("Frame", {
-		Name = "Bar",
-		Parent = SliderFrame,
-		BackgroundColor3 = BruhUI.Theme.Muted,
-		Size = UDim2.new(1, -20, 0, 8),
-		Position = UDim2.new(0, 10, 1, -18)
-	})
-	Util:Corner(4, Bar)
-
-	local Fill = Util:Create("Frame", {
-		Name = "Fill",
-		Parent = Bar,
-		BackgroundColor3 = BruhUI.Theme.Accent,
-		Size = UDim2.new((Default - Min)/(Max - Min), 0, 1, 0),
-		Position = UDim2.new(0, 0, 0, 0)
-	})
-	Util:Corner(4, Fill)
-
-	local dragging = false
-	Bar.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-		end
-	end)
-	UserInputService.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
-		end
-	end)
-	UserInputService.InputChanged:Connect(function(input)
-		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-			local mouseX = input.Position.X
-			local absPos = mouseX - Bar.AbsolutePosition.X
-			absPos = math.clamp(absPos, 0, Bar.AbsoluteSize.X)
-			local val = Min + ((Max - Min) * (absPos / Bar.AbsoluteSize.X))
-			Fill.Size = UDim2.new((val - Min)/(Max - Min), 0, 1, 0)
-			Label.Text = Name.." : "..math.floor(val)
-			task.spawn(Callback, val)
-		end
-	end)
-
-	table.insert(Section.Items, SliderFrame)
-	return SliderFrame
-end
-
---// DROPDOWN
-function BruhUI:AddDropdown(Section, DropdownConfig)
-	-- DropdownConfig = {Name, Options = {}, Default, Callback}
-	if not Section or not Section._Frame then error("AddDropdown: invalid Section") end
-
-	local Name = DropdownConfig.Name or "Dropdown"
-	local Options = DropdownConfig.Options or {"Option1"}
-	local Default = DropdownConfig.Default or Options[1]
-	local Callback = DropdownConfig.Callback or function() end
-	local Index = #Section.Items
-
-	local DropdownFrame = Util:Create("Frame", {
-		Name = Name,
-		Parent = Section._Frame,
-		BackgroundColor3 = BruhUI.Theme.Secondary,
-		Size = UDim2.new(1, -20, 0, 30),
-		Position = UDim2.new(0, 10, 0, 30 + (Index * 40))
-	})
-	Util:Corner(4, DropdownFrame)
-	Util:Stroke(BruhUI.Theme.Border, 1, DropdownFrame)
-
-	local Label = Util:Create("TextLabel", {
-		Name = "Label",
-		Parent = DropdownFrame,
-		Text = Name..": "..Default,
-		TextColor3 = BruhUI.Theme.Text,
-		TextSize = 15,
-		Font = Enum.Font.GothamBold,
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 10, 0, 0),
-		Size = UDim2.new(1, -20, 1, 0),
-		TextXAlignment = Enum.TextXAlignment.Left
-	})
-
-	local Open = false
-	DropdownFrame.MouseButton1Click:Connect(function()
-		Open = not Open
-		if Open then
-			for i, option in ipairs(Options) do
-				local OptLabel = Util:Create("TextButton", {
-					Name = option,
-					Parent = DropdownFrame,
-					Text = option,
-					TextColor3 = BruhUI.Theme.Text,
-					TextSize = 15,
-					Font = Enum.Font.Gotham,
-					BackgroundColor3 = BruhUI.Theme.Secondary,
-					Size = UDim2.new(1, -20, 0, 25),
-					Position = UDim2.new(0, 10, 0, 30 * i)
-				})
-				Util:Corner(4, OptLabel)
-				OptLabel.MouseButton1Click:Connect(function()
-					Label.Text = Name..": "..option
-					Callback(option)
-					-- remove dropdown options
-					for _, c in ipairs(DropdownFrame:GetChildren()) do
-						if c:IsA("TextButton") and c.Name ~= "Label" then
-							c:Destroy()
-						end
-					end
-					Open = false
-				end)
-			end
-		else
-			for _, c in ipairs(DropdownFrame:GetChildren()) do
-				if c:IsA("TextButton") and c.Name ~= "Label" then
-					c:Destroy()
-				end
-			end
-		end
-	end)
-
-	table.insert(Section.Items, DropdownFrame)
-	return DropdownFrame
-end
-
---// COLOR PICKER (simplified)
-function BruhUI:AddColorpicker(Section, ColorConfig)
-	-- ColorConfig = {Name, Default = Color3, Callback}
-	if not Section or not Section._Frame then error("AddColorpicker: invalid Section") end
-
-	local Name = ColorConfig.Name or "Color"
-	local Default = ColorConfig.Default or Color3.fromRGB(255,0,0)
-	local Callback = ColorConfig.Callback or function() end
-	local Index = #Section.Items
-
-	local ColorFrame = Util:Create("Frame", {
-		Name = Name,
-		Parent = Section._Frame,
-		BackgroundColor3 = BruhUI.Theme.Secondary,
-		Size = UDim2.new(1, -20, 0, 30),
-		Position = UDim2.new(0, 10, 0, 30 + (Index * 40))
-	})
-	Util:Corner(4, ColorFrame)
-	Util:Stroke(BruhUI.Theme.Border, 1, ColorFrame)
-
-	local Label = Util:Create("TextLabel", {
-		Name = "Label",
-		Parent = ColorFrame,
-		Text = Name,
-		TextColor3 = BruhUI.Theme.Text,
-		TextSize = 15,
-		Font = Enum.Font.GothamBold,
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 10, 0, 0),
-		Size = UDim2.new(0.7, 0, 1, 0),
-		TextXAlignment = Enum.TextXAlignment.Left
-	})
-
-	local ColorBox = Util:Create("Frame", {
-		Name = "ColorBox",
-		Parent = ColorFrame,
-		BackgroundColor3 = Default,
-		Size = UDim2.new(0, 20, 0, 20),
-		Position = UDim2.new(1, -30, 0.5, -10)
-	})
-	Util:Corner(4, ColorBox)
-
-	ColorFrame.MouseButton1Click:Connect(function()
-		-- simple toggle color randomizer for demo
-		local newColor = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
-		ColorBox.BackgroundColor3 = newColor
-		Callback(newColor)
-	end)
-
-	table.insert(Section.Items, ColorFrame)
-	return ColorFrame
-end
---// BruhUI - Part 8 / 9 : Notifications & Configs
-local BruhUI = require(script.Parent:WaitForChild("BruhUI"))
-local Util = BruhUI.Util
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
-local RunService = game:GetService("RunService")
-
---// NOTIFICATIONS
-function BruhUI:MakeNotification(config)
-	-- config = {Name, Content, Time}
-	config = config or {}
-	local Name = config.Name or "BruhUI"
-	local Content = config.Content or "Notification"
-	local Time = config.Time or 3
-
-	local NotificationFrame = Util:Create("Frame", {
-		Name = Name.."Notification",
-		Parent = self._ScreenGui,
-		BackgroundColor3 = self.Theme.Secondary,
-		Size = UDim2.new(0, 250, 0, 50),
-		Position = UDim2.new(1, -260, 1, -60),
-	})
-	Util:Corner(6, NotificationFrame)
-	Util:Stroke(self.Theme.Border, 1, NotificationFrame)
-
-	local TitleLabel = Util:Create("TextLabel", {
-		Name = "Title",
-		Parent = NotificationFrame,
-		Text = Name,
-		TextColor3 = self.Theme.Text,
-		TextSize = 16,
-		Font = Enum.Font.GothamBold,
-		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -10, 0, 20),
-		Position = UDim2.new(0, 5, 0, 5),
-		TextXAlignment = Enum.TextXAlignment.Left
-	})
-
-	local ContentLabel = Util:Create("TextLabel", {
-		Name = "Content",
-		Parent = NotificationFrame,
-		Text = Content,
-		TextColor3 = self.Theme.Text,
-		TextSize = 14,
-		Font = Enum.Font.Gotham,
-		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -10, 0, 25),
-		Position = UDim2.new(0, 5, 0, 22),
-		TextXAlignment = Enum.TextXAlignment.Left
-	})
-
-	-- Tween in
-	NotificationFrame.Position = UDim2.new(1, 0, 1, -60)
-	Util:Tween(NotificationFrame, TweenInfo.new(0.3), {Position = UDim2.new(1, -260, 1, -60)})
-
-	-- Auto destroy
-	task.delay(Time, function()
-		Util:Tween(NotificationFrame, TweenInfo.new(0.3), {Position = UDim2.new(1, 0, 1, -60)})
-		task.wait(0.3)
-		NotificationFrame:Destroy()
-	end)
-end
-
---// CONFIG SYSTEM
-BruhUI.Configs = BruhUI.Configs or {}
-
-function BruhUI:SaveConfig(Name, Table)
-	if not Name or not Table then return end
-	self.Configs[Name] = Table
-end
-
-function BruhUI:LoadConfig(Name)
-	if not Name then return {} end
-	return self.Configs[Name] or {}
-end
-
---// OPTIONAL: auto save configs every 30 seconds
-task.spawn(function()
-	while true do
-		task.wait(30)
-		-- Here you can implement Roblox DataStore or File saving if desired
-		-- For now just prints to console
-		-- print("BruhUI: Auto-save configs")
-	end
 end)
---// BruhUI - Part 9 / 9 : Final Polish & Orion Quirks
-local BruhUI = require(script.Parent:WaitForChild("BruhUI"))
-local Util = BruhUI.Util
-local RunService = game:GetService("RunService")
-
---// ORION-STYLE QUIRKS / POLISH
-
--- Auto-adjust section height if items exceed frame
-for _, Window in ipairs(BruhUI.Windows) do
-	for _, Tab in ipairs(Window.Tabs) do
-		for _, Section in ipairs(Tab.Sections) do
-			RunService.RenderStepped:Connect(function()
-				local itemCount = #Section.Items
-				if Section._Frame then
-					Section._Frame.Size = UDim2.new(1, -20, 0, 30 + (itemCount * 40))
-				end
-			end)
-		end
-	end
-end
-
--- Smooth hover animations for buttons
-for _, Window in ipairs(BruhUI.Windows) do
-	for _, Tab in ipairs(Window.Tabs) do
-		for _, Section in ipairs(Tab.Sections) do
-			for _, Item in ipairs(Section.Items) do
-				if Item:IsA("TextButton") or Item:IsA("Frame") then
-					Item.MouseEnter:Connect(function()
-						local tween = TweenService:Create(Item, TweenInfo.new(0.2), {BackgroundTransparency = 0.2})
-						tween:Play()
-					end)
-					Item.MouseLeave:Connect(function()
-						local tween = TweenService:Create(Item, TweenInfo.new(0.2), {BackgroundTransparency = 0})
-						tween:Play()
-					end)
-				end
-			end
-		end
-	end
-end
-
--- Orion-style “tab click” sound (optional)
-local function PlayClickSound()
-	-- Uncomment if you want Roblox sound here
-	-- local sound = Instance.new("Sound")
-	-- sound.SoundId = "rbxassetid://123456789" -- Replace with click sound
-	-- sound.Parent = game.SoundService
-	-- sound:Play()
-end
-
--- Close UI when player dies
-game.Players.LocalPlayer.CharacterAdded:Connect(function()
-	for _, Window in ipairs(BruhUI.Windows) do
-		if Window._Frame then
-			Window._Frame.Visible = false
-			Window.Open = false
-		end
-	end
-end)
-
--- Toggle window visibility on keybind (fix if multiple windows)
-for _, Window in ipairs(BruhUI.Windows) do
-	UserInputService.InputBegan:Connect(function(input, gp)
-		if not gp and Window._Keybind and input.KeyCode == Window._Keybind then
-			Window.Open = not Window.Open
-			Window._Frame.Visible = Window.Open
-			Window.Signals.Toggled:Fire(Window.Open)
-		end
-	end)
-end
-
--- Optional: save theme changes dynamically
-function BruhUI:SetTheme(newTheme)
-	for k,v in pairs(newTheme) do
-		if self.Theme[k] ~= nil then
-			self.Theme[k] = v
-		end
-	end
-	-- Refresh all frames
-	for _, Window in ipairs(self.Windows) do
-		if Window._Frame then
-			Window._Frame.BackgroundColor3 = self.Theme.Background
-			for _, Tab in ipairs(Window.Tabs) do
-				for _, Section in ipairs(Tab.Sections) do
-					if Section._Frame then
-						Section._Frame.BackgroundColor3 = self.Theme.Secondary
-						for _, Item in ipairs(Section.Items) do
-							if Item:IsA("TextButton") then
-								Item.BackgroundColor3 = self.Theme.Accent
-								Item.TextColor3 = self.Theme.Text
-							elseif Item:FindFirstChild("ToggleButton") then
-								Item.ToggleButton.BackgroundColor3 = self.Theme.Muted
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-end
-
--- Debug helper
-function BruhUI:PrintStructure()
-	for i, Window in ipairs(self.Windows) do
-		print("Window:", i, Window._Frame.Name)
-		for j, Tab in ipairs(Window.Tabs) do
-			print("  Tab:", j, Tab.Name)
-			for k, Section in ipairs(Tab.Sections) do
-				print("    Section:", k, Section.Name)
-				for l, Item in ipairs(Section.Items) do
-					print("      Item:", l, Item.Name)
-				end
-			end
-		end
-	end
-end
-
--- Final return (merge with Part1 return)
-return BruhUI
