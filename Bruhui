@@ -63,7 +63,7 @@ local Orion = Instance.new("ScreenGui")
 
 local FocusDrag = nil
 
-Orion.Name = "OrionBliz"
+Orion.Name = "OrionBru"
 
 getgenv().gethui = function() return game.CoreGui end
 
