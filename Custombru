@@ -1137,7 +1137,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					Size = UDim2.new(1, 0, 1, 0)
 				})
 
-				local ToggleBox = SetChildren(SetProps(MakeElement("RoundFrame", ToggleConfig.Color, 0, 4), {
+				local ToggleBox = SetChildren(SetProps(MakeElement("RoundFrame", ToggleConfig.Color, 0, 12), {
 					Size = UDim2.new(0, 24, 0, 24),
 					Position = UDim2.new(1, -24, 0.5, 0),
 					AnchorPoint = Vector2.new(0.5, 0.5)
