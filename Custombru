@@ -16,22 +16,21 @@ local OrionLib = {
 	Flags = {},
 	Themes = {
 		Default = {
-			Main = Color3.fromRGB(0, 0, 0),
-			Second = Color3.fromRGB(20, 20, 20),
-			Stroke = Color3.fromRGB(255, 0, 0),
-			Divider = Color3.fromRGB(255, 0, 0),
-			Text = Color3.fromRGB(255, 255, 255),
-			TextDark = Color3.fromRGB(200, 200, 200)
-		},
+			Main = Color3.fromRGB(0, 0, 0),          -- pure black background
+Second = Color3.fromRGB(10, 10, 10),     -- dark gray/black secondary panels
+Stroke = Color3.fromRGB(0, 255, 255),    -- neon light blue outline
+Divider = Color3.fromRGB(0, 180, 255),   -- slightly dimmer neon blue for dividers
+Text = Color3.fromRGB(180, 255, 255),    -- light neon blue text
+TextDark = Color3.fromRGB(100, 200, 255) -- darker neon blue text
 
-		BruhE = {
-			Main = Color3.fromRGB(0, 0, 0), 
-			Second = Color3.fromRGB(50, 0, 0), 
-			Stroke = Color3.fromRGB(70, 0, 0), 
-			Divider = Color3.fromRGB(20, 0, 0), 
-			Text = Color3.fromRGB(255, 255, 255), 
-			TextDark = Color3.fromRGB(150, 150, 150) 
-		}
+BruhE = {
+	Main = Color3.fromRGB(0, 0, 0),         -- black
+	Second = Color3.fromRGB(15, 15, 15),    -- dark gray
+	Stroke = Color3.fromRGB(0, 255, 255),   -- neon blue outlines
+	Divider = Color3.fromRGB(0, 180, 255),  -- divider neon blue
+	Text = Color3.fromRGB(180, 255, 255),   -- neon blue text
+	TextDark = Color3.fromRGB(100, 200, 255) -- darker neon blue text
+}
 	},
 	SelectedTheme = "BruhE",
 	Folder = nil,
