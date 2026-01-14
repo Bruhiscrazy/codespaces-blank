@@ -1245,7 +1245,7 @@ function ElementFunction:AddToggleSlider(Config)
 
 	--================ TOGGLE BOX =================
 	local ToggleBox = SetChildren(SetProps(
-		MakeElement("RoundFrame", Config.Color, 0, 4),
+		MakeElement("RoundFrame", Config.Color, 0, 12),
 		{
 			Size = UDim2.new(0, 24, 0, 24),
 			Position = UDim2.new(1, -24, 0, 14),
