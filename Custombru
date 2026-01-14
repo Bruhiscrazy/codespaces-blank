@@ -1122,226 +1122,183 @@ function OrionLib:MakeWindow(WindowConfig)
 				return Button
 			end
 
-			function ElementFunction:AddToggle(ToggleConfig)
-				ToggleConfig = ToggleConfig or {}
-				ToggleConfig.Name = ToggleConfig.Name or "Toggle"
-				ToggleConfig.Default = ToggleConfig.Default or false
-				ToggleConfig.Callback = ToggleConfig.Callback or function() end
-				ToggleConfig.Color = ToggleConfig.Color or Color3.fromRGB(9, 99, 195)
-				ToggleConfig.Flag = ToggleConfig.Flag or nil
-				ToggleConfig.Save = ToggleConfig.Save or false
+			function ElementFunction:AddToggleSlider(Config)
+    Config = Config or {}
+    Config.Name = Config.Name or "Toggle Slider"
+    Config.Enabled = Config.Enabled or false
+    Config.Min = Config.Min or 0
+    Config.Max = Config.Max or 100
+    Config.Increment = Config.Increment or 1
+    Config.Default = Config.Default or Config.Min
+    Config.Callback = Config.Callback or function() end
+    Config.ValueName = Config.ValueName or ""
+    Config.Color = Config.Color or Color3.fromRGB(9, 149, 98)
+    Config.Flag = Config.Flag or nil
+    Config.Save = Config.Save or false
 
-				local Toggle = {Value = ToggleConfig.Default, Save = ToggleConfig.Save}
+    local Control = {
+        Enabled = Config.Enabled,
+        Value = Config.Default,
+        Save = Config.Save
+    }
 
-				local Click = SetProps(MakeElement("Button"), {
-					Size = UDim2.new(1, 0, 1, 0)
-				})
+    local Dragging, DragInput = false, nil
 
-				local ToggleBox = SetChildren(SetProps(MakeElement("RoundFrame", ToggleConfig.Color, 0, 4), {
-					Size = UDim2.new(0, 24, 0, 24),
-					Position = UDim2.new(1, -24, 0.5, 0),
-					AnchorPoint = Vector2.new(0.5, 0.5)
-				}), {
-					SetProps(MakeElement("Stroke"), {
-						Color = ToggleConfig.Color,
-						Name = "Stroke",
-						Transparency = 0.5
-					}),
-					SetProps(MakeElement("Image", "rbxassetid://3944680095"), {
-						Size = UDim2.new(0, 20, 0, 20),
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						Position = UDim2.new(0.5, 0, 0.5, 0),
-						ImageColor3 = Color3.fromRGB(255, 255, 255),
-						Name = "Ico"
-					}),
-				})
+    -- MAIN FRAME
+    local Frame = AddThemeObject(SetChildren(SetProps(
+        MakeElement("RoundFrame", Color3.fromRGB(255,255,255), 0, 4), {
+            Size = UDim2.new(1, 0, 0, 65),
+            Parent = ItemParent
+        }), {
+        AddThemeObject(SetProps(MakeElement("Label", Config.Name, 15), {
+            Size = UDim2.new(1, -48, 0, 14),
+            Position = UDim2.new(0, 12, 0, 10),
+            Font = Enum.Font.GothamBold,
+            Name = "Content"
+        }), "Text"),
+        AddThemeObject(MakeElement("Stroke"), "Stroke")
+    }), "Second")
 
-				local ToggleFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
-					Size = UDim2.new(1, 0, 0, 38),
-					Parent = ItemParent
-				}), {
-					AddThemeObject(SetProps(MakeElement("Label", ToggleConfig.Name, 15), {
-						Size = UDim2.new(1, -12, 1, 0),
-						Position = UDim2.new(0, 12, 0, 0),
-						Font = Enum.Font.GothamBold,
-						Name = "Content"
-					}), "Text"),
-					AddThemeObject(MakeElement("Stroke"), "Stroke"),
-					ToggleBox,
-					Click
-				}), "Second")
+    -- TOGGLE CLICK AREA
+    local Click = SetProps(MakeElement("Button"), {
+        Size = UDim2.new(1, 0, 1, 0),
+        Parent = Frame
+    })
 
-				function Toggle:Set(Value)
-					Toggle.Value = Value
-					TweenService:Create(ToggleBox, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Divider}):Play()
-					TweenService:Create(ToggleBox.Stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Color = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Stroke}):Play()
-					TweenService:Create(ToggleBox.Ico, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = Toggle.Value and 0 or 1, Size = Toggle.Value and UDim2.new(0, 20, 0, 20) or UDim2.new(0, 8, 0, 8)}):Play()
-					ToggleConfig.Callback(Toggle.Value)
-				end    
+    -- TOGGLE BOX
+    local ToggleBox = SetChildren(SetProps(
+        MakeElement("RoundFrame", Config.Color, 0, 4), {
+            Size = UDim2.new(0, 24, 0, 24),
+            Position = UDim2.new(1, -24, 0, 10),
+            AnchorPoint = Vector2.new(0.5, 0)
+        }), {
+        SetProps(MakeElement("Stroke"), {
+            Color = Config.Color,
+            Transparency = 0.5,
+            Name = "Stroke"
+        }),
+        SetProps(MakeElement("Image", "rbxassetid://3944680095"), {
+            Size = UDim2.new(0, 20, 0, 20),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            ImageTransparency = 1,
+            Name = "Ico"
+        })
+    })
+    ToggleBox.Parent = Frame
 
-				Toggle:Set(Toggle.Value)
+    -- SLIDER BAR
+    local SliderDrag = SetChildren(SetProps(
+        MakeElement("RoundFrame", Config.Color, 0, 5), {
+            Size = UDim2.new(0, 0, 1, 0),
+            BackgroundTransparency = 0.3,
+            ClipsDescendants = true
+        }), {
+        AddThemeObject(SetProps(MakeElement("Label", "value", 13), {
+            Size = UDim2.new(1, -12, 0, 14),
+            Position = UDim2.new(0, 12, 0, 6),
+            Font = Enum.Font.GothamBold,
+            Name = "Value"
+        }), "Text")
+    })
 
-				AddConnection(Click.MouseEnter, function()
-					TweenService:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
-				end)
+    local SliderBar = SetChildren(SetProps(
+        MakeElement("RoundFrame", Config.Color, 0, 5), {
+            Size = UDim2.new(1, -24, 0, 26),
+            Position = UDim2.new(0, 12, 0, 34),
+            BackgroundTransparency = 0.9
+        }), {
+        SetProps(MakeElement("Stroke"), { Color = Config.Color }),
+        AddThemeObject(SetProps(MakeElement("Label", "value", 13), {
+            Size = UDim2.new(1, -12, 0, 14),
+            Position = UDim2.new(0, 12, 0, 6),
+            Font = Enum.Font.GothamBold,
+            Name = "Value",
+            TextTransparency = 0.8
+        }), "Text"),
+        SliderDrag
+    })
+    SliderBar.Parent = Frame
 
-				AddConnection(Click.MouseLeave, function()
-					TweenService:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second}):Play()
-				end)
+    -- INTERNAL SETTERS
+    function Control:SetEnabled(Value)
+        Control.Enabled = Value
 
-				AddConnection(Click.Activated, function()
-					TweenService:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
-					SaveCfg(game.GameId)
-					Toggle:Set(not Toggle.Value)
-				end)
+        TweenService:Create(ToggleBox, TweenInfo.new(0.25), {
+            BackgroundColor3 = Value and Config.Color or OrionLib.Themes.Default.Divider
+        }):Play()
 
-				AddConnection(Click.MouseButton1Down, function()
-					TweenService:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)}):Play()
-				end)
+        TweenService:Create(ToggleBox.Stroke, TweenInfo.new(0.25), {
+            Color = Value and Config.Color or OrionLib.Themes.Default.Stroke
+        }):Play()
 
-				if ToggleConfig.Flag then
-					OrionLib.Flags[ToggleConfig.Flag] = Toggle
-				end	
-				return Toggle
-			end
+        ToggleBox.Ico.ImageTransparency = Value and 0 or 1
+        SliderBar.BackgroundTransparency = Value and 0.9 or 0.97
 
-			function ElementFunction:AddSlider(SliderConfig)
-				SliderConfig = SliderConfig or {}
-				SliderConfig.Name = SliderConfig.Name or "Slider"
-				SliderConfig.Min = SliderConfig.Min or 0
-				SliderConfig.Max = SliderConfig.Max or 100
-				SliderConfig.Increment = SliderConfig.Increment or 1
-				SliderConfig.Default = SliderConfig.Default or 50
-				SliderConfig.Callback = SliderConfig.Callback or function() end
-				SliderConfig.ValueName = SliderConfig.ValueName or ""
-				SliderConfig.Color = SliderConfig.Color or Color3.fromRGB(9, 149, 98)
-				SliderConfig.Flag = SliderConfig.Flag or nil
-				SliderConfig.Save = SliderConfig.Save or false
+        Config.Callback(Control.Enabled, Control.Value)
+    end
 
-				local Slider = {Value = SliderConfig.Default, Save = SliderConfig.Save}
-				local Dragging = false
+    function Control:SetValue(Value)
+        Control.Value = math.clamp(
+            Round(Value, Config.Increment),
+            Config.Min,
+            Config.Max
+        )
 
-				local SliderDrag = SetChildren(SetProps(MakeElement("RoundFrame", SliderConfig.Color, 0, 5), {
-					Size = UDim2.new(0, 0, 1, 0),
-					BackgroundTransparency = 0.3,
-					ClipsDescendants = true
-				}), {
-					AddThemeObject(SetProps(MakeElement("Label", "value", 13), {
-						Size = UDim2.new(1, -12, 0, 14),
-						Position = UDim2.new(0, 12, 0, 6),
-						Font = Enum.Font.GothamBold,
-						Name = "Value",
-						TextTransparency = 0
-					}), "Text")
-				})
+        TweenService:Create(SliderDrag, TweenInfo.new(.15), {
+            Size = UDim2.fromScale(
+                (Control.Value - Config.Min) / (Config.Max - Config.Min),
+                1
+            )
+        }):Play()
 
-				local SliderBar = SetChildren(SetProps(MakeElement("RoundFrame", SliderConfig.Color, 0, 5), {
-					Size = UDim2.new(1, -24, 0, 26),
-					Position = UDim2.new(0, 12, 0, 30),
-					BackgroundTransparency = 0.9
-				}), {
-					SetProps(MakeElement("Stroke"), {
-						Color = SliderConfig.Color
-					}),
-					AddThemeObject(SetProps(MakeElement("Label", "value", 13), {
-						Size = UDim2.new(1, -12, 0, 14),
-						Position = UDim2.new(0, 12, 0, 6),
-						Font = Enum.Font.GothamBold,
-						Name = "Value",
-						TextTransparency = 0.8
-					}), "Text"),
-					SliderDrag
-				})
+        SliderBar.Value.Text = tostring(Control.Value) .. " " .. Config.ValueName
+        SliderDrag.Value.Text = tostring(Control.Value) .. " " .. Config.ValueName
 
-				local SliderFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 4), {
-					Size = UDim2.new(1, 0, 0, 65),
-					Parent = ItemParent
-				}), {
-					AddThemeObject(SetProps(MakeElement("Label", SliderConfig.Name, 15), {
-						Size = UDim2.new(1, -12, 0, 14),
-						Position = UDim2.new(0, 12, 0, 10),
-						Font = Enum.Font.GothamBold,
-						Name = "Content"
-					}), "Text"),
-					AddThemeObject(MakeElement("Stroke"), "Stroke"),
-					SliderBar
-				}), "Second")
+        Config.Callback(Control.Enabled, Control.Value)
+    end
 
-				local Dragging, DragInput, MousePos, FramePos = false
+    -- TOGGLE INPUT
+    AddConnection(Click.Activated, function()
+        SaveCfg(game.GameId)
+        Control:SetEnabled(not Control.Enabled)
+    end)
 
-				AddConnection(SliderBar.InputBegan, function(Input)
-					if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-						Dragging = true
-						MousePos = Input.Position
-						FramePos = SliderBar.Position
-		
-						AddConnection(Input.Changed, function()
-							if Input.UserInputState == Enum.UserInputState.End then
-								Dragging = false
-								FocusDrag = nil
-							end
-						end)
-					end
-				end)
-				AddConnection(SliderBar.InputChanged, function(Input)
-					if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch and not FocusDrag then
-						DragInput = Input
-						FocusDrag = DragInput
-					end
-				end)
+    -- SLIDER INPUT
+    AddConnection(SliderBar.InputBegan, function(Input)
+        if not Control.Enabled then return end
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+            Dragging = true
+            DragInput = Input
+        end
+    end)
 
-				AddConnection(UserInputService.InputChanged, function(Input)
-					if Input == DragInput and Input == FocusDrag and Dragging then
-						local SizeScale = math.clamp((Input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
-						Slider:Set(SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale)) 
-						SaveCfg(game.GameId)
-					end
-				end)
+    AddConnection(UserInputService.InputChanged, function(Input)
+        if Input == DragInput and Dragging then
+            local Scale = math.clamp(
+                (Input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X,
+                0, 1
+            )
+            Control:SetValue(Config.Min + ((Config.Max - Config.Min) * Scale))
+            SaveCfg(game.GameId)
+        end
+    end)
 
-				--[[
+    AddConnection(UserInputService.InputEnded, function()
+        Dragging = false
+        DragInput = nil
+    end)
 
-				SliderBar.InputBegan:Connect(function(Input)
-					if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then 
-						Dragging = true 
-					end 
-				end)
-				SliderBar.InputEnded:Connect(function(Input) 
-					if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then 
-						Dragging = false 
-					end 
-				end)
+    -- INIT
+    Control:SetEnabled(Control.Enabled)
+    Control:SetValue(Control.Value)
 
-				SliderBar.MouseButton1Down:Connect(function()
-					local Location;
-					local loop; loop = RunService.Stepped:Connect(function()
-						if Dragging then
-							Location = UserInputService:GetMouseLocation().X
-							local SizeScale = math.clamp((Location - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
-							Slider:Set(SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale)) 
-							SaveCfg(game.GameId)
-						else
-							loop:Disconnect()
-						end
-					end)
-				end)
+    if Config.Flag then
+        OrionLib.Flags[Config.Flag] = Control
+    end
 
-				
-				]]--
-				
-				function Slider:Set(Value)
-					self.Value = math.clamp(Round(Value, SliderConfig.Increment), SliderConfig.Min, SliderConfig.Max)
-					TweenService:Create(SliderDrag,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = UDim2.fromScale((self.Value - SliderConfig.Min) / (SliderConfig.Max - SliderConfig.Min), 1)}):Play()
-					SliderBar.Value.Text = tostring(self.Value) .. " " .. SliderConfig.ValueName
-					SliderDrag.Value.Text = tostring(self.Value) .. " " .. SliderConfig.ValueName
-					SliderConfig.Callback(self.Value)
-				end      
-
-				Slider:Set(Slider.Value)
-				if SliderConfig.Flag then				
-					OrionLib.Flags[SliderConfig.Flag] = Slider
-				end
-				return Slider
-			end
+    return Control
+end
 
 			function ElementFunction:AddMultipleDropdown(DropdownConfig)
 				DropdownConfig = DropdownConfig or {}
