@@ -26,7 +26,7 @@ local OrionLib = {
 
 		BruhE = {
 			Main = Color3.fromRGB(0, 0, 0), 
-			Second = Color3.fromRGB(50, 0, 0), 
+			Second = Color3.fromRGB(255, 255, 255), 
 			Stroke = Color3.fromRGB(35, 0, 0), 
 			Divider = Color3.fromRGB(255, 255, 255), 
 			Text = Color3.fromRGB(255, 255, 255), 
