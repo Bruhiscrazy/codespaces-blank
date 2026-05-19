@@ -880,6 +880,18 @@ function OrionLib:MakeWindow(WindowConfig)
 				Name = "Title"
 			}), "Text")
 		})
+        local Indicator = Instance.new("Frame")
+Indicator.Name = "Indicator"
+Indicator.Size = UDim2.new(0, 3, 1, -8)
+Indicator.Position = UDim2.new(0, 0, 0, 4)
+Indicator.BackgroundColor3 = Color3.fromRGB(0,170,255)
+Indicator.BorderSizePixel = 0
+Indicator.Visible = false
+Indicator.Parent = TabFrame
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1,0)
+UICorner.Parent = Indicator
 
 		if GetIcon(TabConfig.Icon) ~= nil then
 			TabFrame.Ico.Image = GetIcon(TabConfig.Icon)
@@ -906,10 +918,14 @@ function OrionLib:MakeWindow(WindowConfig)
 			TabFrame.Title.TextTransparency = 0
 			TabFrame.Title.Font = Enum.Font.GothamBlack
 			Container.Visible = true
+            Indicator.Visible = true
 		end    
 
 		AddConnection(TabFrame.MouseButton1Click, function()
 			for _, Tab in next, TabHolder:GetChildren() do
+                if Tab:FindFirstChild("Indicator") then
+             	Tab.Indicator.Visible = false
+            end
 				if Tab:IsA("TextButton") then
 					Tab.Title.Font = Enum.Font.GothamSemibold
 					TweenService:Create(Tab.Ico, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0.4}):Play()
@@ -924,7 +940,8 @@ function OrionLib:MakeWindow(WindowConfig)
 			TweenService:Create(TabFrame.Ico, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0}):Play()
 			TweenService:Create(TabFrame.Title, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
 			TabFrame.Title.Font = Enum.Font.GothamBlack
-			Container.Visible = true   
+			Container.Visible = true
+            Indicator.Visible = true
 		end)
 
 		
