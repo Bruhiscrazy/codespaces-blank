@@ -16,21 +16,23 @@ local OrionLib = {
 	Flags = {},
 	Themes = {
 		Default = {
-			Main = Color3.fromRGB(0, 0, 0),
-			Second = Color3.fromRGB(10, 10, 10),
-			Stroke = Color3.fromRGB(0, 255, 255),
-			Divider = Color3.fromRGB(0, 180, 255),
-			Text = Color3.fromRGB(100, 255, 255),
-			TextDark = Color3.fromRGB(100, 200, 255)
+			Main = Color3.fromRGB(12, 12, 12), 
+			Second = Color3.fromRGB(18, 18, 18), 
+			Stroke = Color3.fromRGB(40, 40, 55), 
+			Divider = Color3.fromRGB(30, 30, 40), 
+			Text = Color3.fromRGB(235, 235, 235), 
+			TextDark = Color3.fromRGB(160, 160, 170), 
+            Accent = Color3.fromRGB(0, 170, 255)
 		},
 
 		BruhE = {
-			Main = Color3.fromRGB(0, 0, 0), 
-			Second = Color3.fromRGB(15, 15, 15), 
-			Stroke = Color3.fromRGB(0, 255, 255), 
-			Divider = Color3.fromRGB(0, 180, 255), 
-			Text = Color3.fromRGB(100, 255, 255), 
-			TextDark = Color3.fromRGB(100, 200, 255) 
+			Main = Color3.fromRGB(12, 12, 12), 
+			Second = Color3.fromRGB(18, 18, 18), 
+			Stroke = Color3.fromRGB(40, 40, 55), 
+			Divider = Color3.fromRGB(30, 30, 40), 
+			Text = Color3.fromRGB(235, 235, 235), 
+			TextDark = Color3.fromRGB(160, 160, 170), 
+            Accent = Color3.fromRGB(0, 170, 255)
 		}
 	},
 	SelectedTheme = "BruhE",
