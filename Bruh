@@ -383,8 +383,8 @@ function OrionLib:MakeWindow(config)
         Name = "Window",
         BackgroundColor3 = SelectedTheme.Main,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 750, 0, 550),
-        Position = UDim2.new(0.5, -375, 0.5, -275),
+        Size = UDim2.new(0, S(750), 0, S(550))
+        Position = UDim2.new(0, WinX, 0, WinY),
         Image = "rbxassetid://1316045217",
         ImageColor3 = SelectedTheme.Main,
         ScaleType = Enum.ScaleType.Slice,
